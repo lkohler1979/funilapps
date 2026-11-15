@@ -3,6 +3,12 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/pricing";
 import { addCombo, removeCombo, updateAppAdmin } from "../actions";
+import { ContentForm } from "./content-form";
+import { JsonEditor } from "./json-editor";
+import { ArticlesSection } from "./articles-section";
+import { VideosSection } from "./videos-section";
+import { PodcastsSection } from "./podcasts-section";
+import { NewsSection } from "./news-section";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +21,15 @@ export default async function EditAppPage({
 }) {
   const { slug } = await params;
   const { salvo, erro } = await searchParams;
-  const app = await prisma.app.findUnique({ where: { slug } });
+  const app = await prisma.app.findUnique({
+    where: { slug },
+    include: {
+      articles: { orderBy: { order: "asc" } },
+      videoLessons: { orderBy: { order: "asc" } },
+      podcasts: { orderBy: { order: "asc" } },
+      newsItems: { orderBy: { order: "asc" } },
+    },
+  });
 
   if (!app) {
     notFound();
@@ -42,7 +56,7 @@ export default async function EditAppPage({
   const selectableApps = otherApps.filter((a) => !relatedIds.has(a.id));
 
   return (
-    <div className="max-w-xl">
+    <div className="max-w-2xl">
       <h1 className="mb-6 text-2xl font-semibold text-black dark:text-zinc-50">
         Editar: {app.name}
       </h1>
@@ -55,7 +69,6 @@ export default async function EditAppPage({
 
       <form
         action={updateAppAdmin}
-        encType="multipart/form-data"
         className="flex flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950"
       >
         <input type="hidden" name="id" value={app.id} />
@@ -235,6 +248,43 @@ export default async function EditAppPage({
           </form>
         )}
       </section>
+
+      <ContentForm app={app} />
+
+      <ArticlesSection appId={app.id} slug={app.slug} articles={app.articles} />
+
+      <VideosSection appId={app.id} slug={app.slug} videos={app.videoLessons} />
+
+      <PodcastsSection appId={app.id} slug={app.slug} podcasts={app.podcasts} />
+
+      <NewsSection appId={app.id} slug={app.slug} news={app.newsItems} />
+
+      <JsonEditor
+        appId={app.id}
+        slug={app.slug}
+        field="weeklyPlan"
+        title="Plano semanal (desafios)"
+        value={app.weeklyPlan}
+        erro={erro}
+      />
+
+      <JsonEditor
+        appId={app.id}
+        slug={app.slug}
+        field="quiz"
+        title="Quiz"
+        value={app.quiz}
+        erro={erro}
+      />
+
+      <JsonEditor
+        appId={app.id}
+        slug={app.slug}
+        field="diagnostico"
+        title="Diagnóstico"
+        value={app.diagnostico}
+        erro={erro}
+      />
     </div>
   );
 }

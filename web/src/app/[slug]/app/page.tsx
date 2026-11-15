@@ -15,6 +15,7 @@ export default async function AppHomePage({
     include: {
       articles: { orderBy: { order: "asc" } },
       videoLessons: { orderBy: { order: "asc" } },
+      newsItems: { orderBy: { order: "asc" } },
     },
   });
 
@@ -22,9 +23,7 @@ export default async function AppHomePage({
     notFound();
   }
 
-  const news = Array.isArray(app.news)
-    ? (app.news as { title: string; source: string; url: string; date?: string }[])
-    : [];
+  const news = app.newsItems;
 
   return (
     <div>
@@ -116,9 +115,9 @@ export default async function AppHomePage({
             Notícias
           </h2>
           <div className="flex flex-col gap-3">
-            {news.map((item, i) => (
+            {news.map((item) => (
               <a
-                key={i}
+                key={item.id}
                 href={item.url}
                 target="_blank"
                 rel="noopener noreferrer"

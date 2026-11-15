@@ -36,7 +36,6 @@ model App {
   weeklyPlan      Json?
   quiz            Json?
   diagnostico     Json?
-  news            Json?
   progressPhrases Json?
   ebookTitle      String?
   ebookSubtitle   String?
@@ -46,6 +45,8 @@ model App {
   articles     Article[]
   podcasts     Podcast[]
   videoLessons VideoLesson[]
+  newsItems    NewsItem[]
+  userProgress UserProgress[]
 }
 
 model Article {
@@ -79,6 +80,32 @@ model VideoLesson {
   title   String
   num     String?
   order   Int     @default(0)
+}
+
+model NewsItem {
+  id     String  @id @default(cuid())
+  appId  String
+  app    App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  title  String
+  source String?
+  url    String
+  thumb  String?
+  date   String?
+  order  Int     @default(0)
+}
+
+model UserProgress {
+  id          String   @id @default(cuid())
+  email       String
+  appId       String
+  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  kind        String // "exercise" | "quiz"
+  key         String // nome do exercício, ou "latest" pro quiz
+  value       Json?
+  completedAt DateTime @default(now())
+
+  @@unique([email, appId, kind, key])
+  @@index([email, appId])
 }
 
 model RelatedApp {

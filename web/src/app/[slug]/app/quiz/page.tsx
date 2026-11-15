@@ -33,7 +33,7 @@ export default async function QuizPage({
       <h1 className="mb-6 text-xl font-semibold text-black dark:text-zinc-50">
         🧠 Quiz
       </h1>
-      <QuizGame questions={questions} />
+      <QuizGame questions={questions} slug={slug} appId={app.id} />
     </div>
   );
 }

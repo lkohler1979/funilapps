@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { submitQuizResult } from "../progress-actions";
 
 type QuizQuestion = {
   question: string;
@@ -20,30 +21,53 @@ function shuffle<T>(arr: T[]): T[] {
   return copy;
 }
 
-export function QuizGame({ questions }: { questions: QuizQuestion[] }) {
+export function QuizGame({
+  questions,
+  slug,
+  appId,
+}: {
+  questions: QuizQuestion[];
+  slug: string;
+  appId: string;
+}) {
   const [round, setRound] = useState(0);
   const [pool, setPool] = useState<QuizQuestion[] | null>(null);
   const [index, setIndex] = useState(0);
   const [score, setScore] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     setPool(shuffle(questions).slice(0, QUESTIONS_PER_ROUND));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const finished = pool !== null && index >= pool.length;
+
+  useEffect(() => {
+    if (finished && pool !== null && !saved) {
+      setSaved(true);
+      submitQuizResult(slug, appId, score, pool.length);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [finished]);
+
   if (pool === null) {
     return <p className="text-sm text-zinc-500">Carregando...</p>;
   }
 
+  if (questions.length === 0) {
+    return <p className="text-sm text-zinc-500">Nenhuma pergunta disponível.</p>;
+  }
+
   const current = pool[index];
-  const finished = index >= pool.length;
 
   function restart() {
     setPool(shuffle(questions).slice(0, QUESTIONS_PER_ROUND));
     setIndex(0);
     setScore(0);
     setSelected(null);
+    setSaved(false);
     setRound((r) => r + 1);
   }
 
@@ -58,10 +82,6 @@ export function QuizGame({ questions }: { questions: QuizQuestion[] }) {
   function next() {
     setSelected(null);
     setIndex((i) => i + 1);
-  }
-
-  if (questions.length === 0) {
-    return <p className="text-sm text-zinc-500">Nenhuma pergunta disponível.</p>;
   }
 
   if (finished) {

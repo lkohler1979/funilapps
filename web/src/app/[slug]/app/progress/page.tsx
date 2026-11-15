@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getBuyerEmail } from "@/lib/buyer";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,85 @@ export default async function ProgressPage({
     : [];
   const labels = (app.labels ?? {}) as Record<string, string>;
 
+  const plan = (app.weeklyPlan ?? {}) as {
+    treinos?: Record<string, { subtitle?: string; [day: string]: unknown }>;
+  };
+  const totalExercises = Object.values(plan.treinos ?? {}).reduce(
+    (sum, week) => {
+      const { subtitle: _subtitle, ...days } = week as {
+        subtitle?: string;
+        [day: string]: unknown;
+      };
+      return (
+        sum +
+        Object.values(days).reduce(
+          (daySum: number, exercises) => daySum + (exercises as unknown[]).length,
+          0,
+        )
+      );
+    },
+    0,
+  );
+
+  const buyerEmail = await getBuyerEmail();
+  let doneCount = 0;
+  let quizResult: { score: number; total: number } | null = null;
+
+  if (buyerEmail) {
+    const [exerciseCount, quizRow] = await Promise.all([
+      prisma.userProgress.count({
+        where: { email: buyerEmail, appId: app.id, kind: "exercise" },
+      }),
+      prisma.userProgress.findUnique({
+        where: {
+          email_appId_kind_key: {
+            email: buyerEmail,
+            appId: app.id,
+            kind: "quiz",
+            key: "latest",
+          },
+        },
+      }),
+    ]);
+    doneCount = exerciseCount;
+    quizResult = (quizRow?.value as { score: number; total: number } | null) ?? null;
+  }
+
   return (
     <div>
       <h1 className="mb-6 text-xl font-semibold text-black dark:text-zinc-50">
         🔥 {labels.ofensivaHome ?? "Seu progresso"}
       </h1>
+
+      <div className="mb-6 grid grid-cols-2 gap-3">
+        <div className="rounded-lg border border-black/[.08] bg-white p-4 dark:border-white/[.1] dark:bg-zinc-950">
+          <p className="text-xs text-zinc-500">
+            {labels.exerciciosFeitos ?? "Concluídos"}
+          </p>
+          <p className="text-xl font-semibold text-black dark:text-zinc-50">
+            {doneCount}
+            {totalExercises > 0 && (
+              <span className="text-sm font-normal text-zinc-500">
+                {" "}
+                / {totalExercises}
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="rounded-lg border border-black/[.08] bg-white p-4 dark:border-white/[.1] dark:bg-zinc-950">
+          <p className="text-xs text-zinc-500">Último quiz</p>
+          <p className="text-xl font-semibold text-black dark:text-zinc-50">
+            {quizResult ? `${quizResult.score}/${quizResult.total}` : "—"}
+          </p>
+        </div>
+      </div>
+
+      {!buyerEmail && (
+        <p className="mb-6 text-sm text-zinc-500">
+          Faça login com o e-mail da compra para salvar seu progresso entre
+          dispositivos.
+        </p>
+      )}
 
       <div className="flex flex-col gap-3">
         {phrases.map((phrase, i) => (
@@ -35,9 +110,6 @@ export default async function ProgressPage({
             {phrase}
           </p>
         ))}
-        {phrases.length === 0 && (
-          <p className="text-sm text-zinc-500">Continue firme — seu progresso aparece aqui.</p>
-        )}
       </div>
     </div>
   );

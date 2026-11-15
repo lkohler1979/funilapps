@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getBuyerEmail } from "@/lib/buyer";
+import { ExerciseToggle } from "./exercise-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +32,18 @@ export default async function TreinosPage({
   const details = plan.exerciseDetails ?? {};
 
   const labels = (app.labels ?? {}) as Record<string, string>;
+
+  const buyerEmail = await getBuyerEmail();
+  const doneExercises = buyerEmail
+    ? new Set(
+        (
+          await prisma.userProgress.findMany({
+            where: { email: buyerEmail, appId: app.id, kind: "exercise" },
+            select: { key: true },
+          })
+        ).map((p) => p.key),
+      )
+    : new Set<string>();
 
   return (
     <div>
@@ -75,7 +89,13 @@ export default async function TreinosPage({
                         return (
                           <li key={i} className="text-sm">
                             <details>
-                              <summary className="cursor-pointer text-zinc-700 dark:text-zinc-300">
+                              <summary className="flex cursor-pointer items-center gap-2 text-zinc-700 dark:text-zinc-300">
+                                <ExerciseToggle
+                                  slug={slug}
+                                  appId={app.id}
+                                  exerciseName={ex.name}
+                                  initialDone={doneExercises.has(ex.name)}
+                                />
                                 {ex.name}
                                 {ex.reps ? ` — ${ex.reps}` : ""}
                               </summary>

@@ -28,7 +28,6 @@ export default async function NewAppPage({
 
       <form
         action={createApp}
-        encType="multipart/form-data"
         className="flex flex-col gap-4 rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950"
       >
         <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
