@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatCents, BUNDLE_PRICE_CENTS } from "@/lib/pricing";
@@ -62,21 +63,32 @@ export default async function Home({
                   <Link
                     key={app.id}
                     href={`/${app.slug}`}
-                    className="block rounded-lg border border-black/[.08] bg-white p-4 transition-colors hover:border-black/[.2] dark:border-white/[.1] dark:bg-zinc-950 dark:hover:border-white/[.3]"
+                    className="block overflow-hidden rounded-lg border border-black/[.08] bg-white transition-colors hover:border-black/[.2] dark:border-white/[.1] dark:bg-zinc-950 dark:hover:border-white/[.3]"
                   >
-                    <h3 className="font-medium text-black dark:text-zinc-50">
-                      {app.name}
-                    </h3>
-                    <p className="mt-1 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
-                      {app.description}
-                    </p>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-xs text-zinc-400">
-                        {app.status === "published" ? "Publicado" : "Rascunho"}
-                      </span>
-                      <span className="text-sm font-medium text-black dark:text-zinc-50">
-                        {formatCents(app.priceCents)}
-                      </span>
+                    <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-900">
+                      <Image
+                        src={`/apps/${app.slug}.jpg`}
+                        alt={app.name}
+                        fill
+                        sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-medium text-black dark:text-zinc-50">
+                        {app.name}
+                      </h3>
+                      <p className="mt-1 line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">
+                        {app.description}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-xs text-zinc-400">
+                          {app.status === "published" ? "Publicado" : "Rascunho"}
+                        </span>
+                        <span className="text-sm font-medium text-black dark:text-zinc-50">
+                          {formatCents(app.priceCents)}
+                        </span>
+                      </div>
                     </div>
                   </Link>
                 ))}

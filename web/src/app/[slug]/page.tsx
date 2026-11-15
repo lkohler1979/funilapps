@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -68,6 +69,17 @@ export default async function AppPage({
       </header>
 
       <main className="mx-auto max-w-2xl px-6 py-10 sm:px-12">
+        <div className="relative mb-6 aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
+          <Image
+            src={`/apps/${app.slug}.jpg`}
+            alt={app.name}
+            fill
+            sizes="320px"
+            className="object-cover"
+            priority
+          />
+        </div>
+
         {desbloqueado && (
           <p className="mb-6 rounded-lg border border-green-600/30 bg-green-50 p-4 text-sm text-green-800 dark:border-green-400/30 dark:bg-green-950 dark:text-green-300">
             Compra confirmada! Acesso liberado neste navegador.
