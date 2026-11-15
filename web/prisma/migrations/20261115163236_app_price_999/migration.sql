@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "App" ALTER COLUMN "priceCents" SET DEFAULT 999;
