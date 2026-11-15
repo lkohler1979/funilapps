@@ -6,7 +6,7 @@ import { recordPaidSession } from "@/lib/purchases";
 export async function GET(request: NextRequest) {
   const sessionId = request.nextUrl.searchParams.get("session_id");
   const slug = request.nextUrl.searchParams.get("slug");
-  const siteUrl = request.nextUrl.origin;
+  const siteUrl = process.env.SITE_URL ?? request.nextUrl.origin;
 
   if (!sessionId) {
     return NextResponse.redirect(`${siteUrl}/`);
