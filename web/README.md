@@ -19,13 +19,18 @@ e edição pela interface.
    DIRECT_URL="postgresql://...:5432/postgres"
    AUTH_SECRET="<string aleatória, ex: openssl rand -hex 32>"
    ADMIN_PASSWORD="<senha de admin para editar o catálogo>"
+   SITE_URL="http://localhost:3000"
+   STRIPE_SECRET_KEY="<chave secreta da Stripe>"
+   STRIPE_WEBHOOK_SECRET="<signing secret do webhook da Stripe>"
    ```
 
    `DATABASE_URL` é a conexão via pooler (usada pela aplicação em runtime).
    `DIRECT_URL` é a conexão direta (porta 5432), usada pelo Prisma CLI.
    `AUTH_SECRET` assina o cookie de sessão do login (`/login`) e `ADMIN_PASSWORD`
    é a senha única de administrador — só com ela logado é possível editar um
-   app pelo formulário em `/<slug>`.
+   app pelo formulário em `/<slug>`. `SITE_URL` é a URL pública do site (usada
+   para montar as URLs de retorno do checkout Stripe). `STRIPE_SECRET_KEY` e
+   `STRIPE_WEBHOOK_SECRET` vêm do dashboard da Stripe (ver seção "Pagamentos").
 
 2. Instalar dependências e gerar o client:
 
@@ -101,7 +106,31 @@ de administrador, cookie assinado com `AUTH_SECRET`):
 - A listagem (`/`) e a visualização de cada app continuam públicas; só o
   formulário de edição fica oculto para quem não está logado.
 
+## Pagamentos
+
+Cada app tem um preço (`priceCents`, editável pelo admin em `/<slug>`) e
+existe uma oferta de pacote com todos os 36 apps (`BUNDLE_PRICE_CENTS` em
+`src/lib/pricing.ts`). Checkout via Stripe (Checkout Session hospedado, sem
+Stripe.js no front-end):
+
+- `src/app/checkout/actions.ts` — cria a sessão de checkout (por app ou
+  pacote) e o desbloqueio manual por e-mail.
+- `src/app/api/checkout/callback/route.ts` — URL de retorno do Stripe após o
+  pagamento: confirma a sessão, grava a compra e libera acesso (cookie) neste
+  navegador.
+- `src/app/api/webhooks/stripe/route.ts` — webhook (`checkout.session.completed`)
+  que confirma a compra de forma assíncrona/idempotente — necessário caso o
+  comprador feche a aba antes de retornar (ex: pagamento via PIX).
+- `src/lib/buyer.ts` — cookie assinado com o e-mail do comprador e checagem de
+  acesso (`hasAccessToApp`) contra a tabela `Purchase`.
+- Quem comprou mas está em outro navegador/dispositivo pode desbloquear de
+  novo informando o mesmo e-mail em "Já comprei" na página do app.
+- Configurar na Stripe: um webhook endpoint apontando para
+  `<SITE_URL>/api/webhooks/stripe`, evento `checkout.session.completed`.
+
 ## Limitações conhecidas
 
 - Login único (uma senha de admin, sem multiusuário/papéis) — suficiente
   para proteger a edição, mas não serve para múltiplos editores.
+- O "conteúdo" liberado pela compra ainda é a descrição do catálogo — os
+  apps em si (funcionalidade real de cada nicho) ainda não foram construídos.

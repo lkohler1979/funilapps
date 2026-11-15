@@ -15,10 +15,11 @@ export async function updateApp(formData: FormData) {
   const category = String(formData.get("category"));
   const description = String(formData.get("description"));
   const status = String(formData.get("status"));
+  const priceCents = Number(formData.get("priceCents"));
 
   await prisma.app.update({
     where: { id },
-    data: { name, category, description, status },
+    data: { name, category, description, status, priceCents },
   });
 
   revalidatePath(`/${slug}`);
