@@ -46,4 +46,11 @@ vendido separadamente), baseado no modelo de funil de apps PLR levantado em
 
 ## Stack
 
-A definir por app (sugestão inicial: Next.js).
+- **App web**: [`web/`](web/) — Next.js (App Router) servindo a landing (`/`) e uma rota por
+  app (`/<slug-curto>`, ex: `/ansiedade`), com edição de cada app pela própria interface.
+- **Banco de dados**: PostgreSQL (Supabase, projeto `funilapps`) via Prisma ORM + migrations.
+  Cada app é uma linha na tabela `App` (slug curto, categoria, descrição, status), permitindo
+  publicar/editar cada um independentemente dentro do mesmo catálogo.
+- **Domínio alvo**: `funilapps.unifyhub.com.br`.
+
+Ver [`web/README.md`](web/README.md) para instruções de desenvolvimento local.
