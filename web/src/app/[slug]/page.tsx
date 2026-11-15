@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { isAuthenticated } from "@/lib/auth";
+import { logout } from "@/app/login/actions";
 import { updateApp } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +18,8 @@ export default async function AppPage({
   if (!app) {
     notFound();
   }
+
+  const authenticated = await isAuthenticated();
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
@@ -33,6 +37,25 @@ export default async function AppPage({
           /{app.slug} · {app.category} ·{" "}
           {app.status === "published" ? "Publicado" : "Rascunho"}
         </p>
+        <div className="mt-2">
+          {authenticated ? (
+            <form action={logout}>
+              <button
+                type="submit"
+                className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                Sair
+              </button>
+            </form>
+          ) : (
+            <Link
+              href="/login"
+              className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              Login para editar
+            </Link>
+          )}
+        </div>
       </header>
 
       <main className="mx-auto max-w-2xl px-6 py-10 sm:px-12">
@@ -40,6 +63,7 @@ export default async function AppPage({
           <p className="text-zinc-700 dark:text-zinc-300">{app.description}</p>
         </section>
 
+        {authenticated && (
         <section className="rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950">
           <h2 className="mb-4 text-lg font-semibold text-black dark:text-zinc-50">
             Editar app
@@ -99,6 +123,7 @@ export default async function AppPage({
             </button>
           </form>
         </section>
+        )}
       </main>
     </div>
   );

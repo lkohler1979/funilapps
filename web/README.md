@@ -17,10 +17,15 @@ e edição pela interface.
    ```bash
    DATABASE_URL="postgresql://...:6543/postgres?pgbouncer=true&connection_limit=1"
    DIRECT_URL="postgresql://...:5432/postgres"
+   AUTH_SECRET="<string aleatória, ex: openssl rand -hex 32>"
+   ADMIN_PASSWORD="<senha de admin para editar o catálogo>"
    ```
 
    `DATABASE_URL` é a conexão via pooler (usada pela aplicação em runtime).
    `DIRECT_URL` é a conexão direta (porta 5432), usada pelo Prisma CLI.
+   `AUTH_SECRET` assina o cookie de sessão do login (`/login`) e `ADMIN_PASSWORD`
+   é a senha única de administrador — só com ela logado é possível editar um
+   app pelo formulário em `/<slug>`.
 
 2. Instalar dependências e gerar o client:
 
@@ -83,7 +88,20 @@ do Luiz — ver `DEPLOY.md` na raiz do repo).
   pm2 restart funilapp-web
   ```
 
+## Autenticação
+
+A edição de cada app (`/<slug>`) é protegida por login simples (senha única
+de administrador, cookie assinado com `AUTH_SECRET`):
+
+- `src/lib/auth.ts` — assina/valida o cookie de sessão e confere a senha.
+- `src/app/login/` — página e Server Actions de login/logout.
+- A Server Action `updateApp` (`src/app/[slug]/actions.ts`) recusa a
+  atualização se não houver sessão válida, independente do que a UI mostra —
+  essa é a verificação que realmente importa.
+- A listagem (`/`) e a visualização de cada app continuam públicas; só o
+  formulário de edição fica oculto para quem não está logado.
+
 ## Limitações conhecidas
 
-- A edição de cada app não tem autenticação — qualquer pessoa com acesso à
-  URL pode editar. Adicionar auth antes de ir para produção.
+- Login único (uma senha de admin, sem multiusuário/papéis) — suficiente
+  para proteger a edição, mas não serve para múltiplos editores.

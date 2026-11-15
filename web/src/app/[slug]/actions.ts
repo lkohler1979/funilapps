@@ -2,8 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { isAuthenticated } from "@/lib/auth";
 
 export async function updateApp(formData: FormData) {
+  if (!(await isAuthenticated())) {
+    throw new Error("Não autenticado");
+  }
+
   const id = String(formData.get("id"));
   const slug = String(formData.get("slug"));
   const name = String(formData.get("name"));

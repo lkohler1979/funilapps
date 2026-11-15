@@ -31,7 +31,9 @@ pm2 restart funilapp-web
    `npm approve-scripts @prisma/engines prisma && npm rebuild` antes de
    seguir, senão o engine do Prisma não é baixado.
 3. Criar `web/.env` com `DATABASE_URL` (pooler, porta 6543) e `DIRECT_URL`
-   (direto, porta 5432) do Supabase.
+   (direto, porta 5432) do Supabase, mais `AUTH_SECRET` (string aleatória,
+   ex: `openssl rand -hex 32`) e `ADMIN_PASSWORD` (senha de admin para editar
+   o catálogo — ver seção "Autenticação" em `web/README.md`).
 4. `npx prisma generate && npm run build`.
 5. `pm2 start npm --name funilapp-web --cwd /var/www/funilapps/web -- start -- -p 3500`
    seguido de `pm2 save`.
