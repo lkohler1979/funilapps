@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isAuthenticated } from "@/lib/auth";
-import { getBuyerEmail, hasAccessToApp } from "@/lib/buyer";
+import { isUnlocked } from "@/lib/access";
 import { formatCents } from "@/lib/pricing";
 import { logout } from "@/app/login/actions";
 import {
@@ -30,9 +30,7 @@ export default async function AppPage({
   }
 
   const authenticated = await isAuthenticated();
-  const buyerEmail = await getBuyerEmail();
-  const purchased = buyerEmail ? await hasAccessToApp(buyerEmail, app.id) : false;
-  const unlocked = authenticated || purchased;
+  const unlocked = await isUnlocked(app.id);
 
   const relations = await prisma.relatedApp.findMany({
     where: { OR: [{ appId: app.id }, { relatedAppId: app.id }] },
@@ -110,6 +108,12 @@ export default async function AppPage({
         {unlocked ? (
           <section className="mb-10 rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950">
             <p className="text-zinc-700 dark:text-zinc-300">{app.description}</p>
+            <Link
+              href={`/${app.slug}/app`}
+              className="mt-6 block w-full rounded-full bg-foreground px-5 py-2 text-center text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+            >
+              Entrar no app
+            </Link>
           </section>
         ) : (
           <section className="mb-10 rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950">

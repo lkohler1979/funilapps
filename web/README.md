@@ -157,9 +157,36 @@ Cada app tem um preço (`priceCents`, editável no admin). Checkout via Stripe
 - Configurar na Stripe: um webhook endpoint apontando para
   `<SITE_URL>/api/webhooks/stripe`, evento `checkout.session.completed`.
 
+## Mini-app (`/<slug>/app`)
+
+Cada app, depois de comprado, abre numa experiência própria em `/<slug>/app`
+(protegida pelo mesmo `isUnlocked` da página de vendas): hero, aulas em
+vídeo, artigos, notícias, áudios/podcast, plano semanal (desafios por
+semana/dia, com detalhe de cada prática), e-book, quiz interativo com
+pontuação, e uma aba "Reels" que promove outros apps do nosso catálogo
+(em vez de produtos de terceiros).
+
+- Conteúdo original: copiado do material PLR do AppFunnelsPro (editor de
+  apps da conta licenciada do usuário — mesmo material já usado para as
+  imagens e descrições). Importado uma vez via script para os campos
+  `App.tagline/heroBadge/heroTitle/navigation/labels/theme/weeklyPlan/quiz/
+  diagnostico/news/progressPhrases/ebook*` e os modelos `Article`, `Podcast`,
+  `VideoLesson` (relacionados a `App`).
+- `src/app/[slug]/app/layout.tsx` — guarda de acesso + menu inferior
+  (dinâmico a partir de `App.navigation`).
+- `src/lib/access.ts` — `isUnlocked(appId)` unifica a checagem de admin
+  logado ou comprador com acesso (reaproveitado da página de vendas).
+- Estrutura/UI é nossa (não é cópia pixel-a-pixel do visual original), mas
+  o conteúdo, a organização em seções e a navegação seguem o mesmo padrão
+  para todos os 36 apps — o template é genérico, dirigido pelos dados de
+  cada app no banco.
+
 ## Limitações conhecidas
 
 - Login único (um superadmin, sem multiusuário/papéis).
 - Sem exclusão de apps no painel (só despublicar via status).
-- O "conteúdo" liberado pela compra ainda é a descrição do catálogo — os
-  apps em si (funcionalidade real de cada nicho) ainda não foram construídos.
+- Progresso do plano semanal e histórico do quiz não são persistidos (sem
+  tracking de conclusão por usuário ainda).
+- Conteúdo do mini-app (artigos, quiz, plano semanal etc.) ainda não é
+  editável pelo painel admin — só os campos do catálogo (nome, preço,
+  descrição, imagem, cor, status) são.

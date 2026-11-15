@@ -25,6 +25,60 @@ model App {
   updatedAt   DateTime     @updatedAt
   relatedFrom RelatedApp[] @relation("RelatedFrom")
   relatedTo   RelatedApp[] @relation("RelatedTo")
+
+  // Conteúdo do "app de verdade" (home, menu, plano, quiz etc.)
+  tagline         String?
+  heroBadge       String?
+  heroTitle       String?
+  navigation      Json?
+  labels          Json?
+  theme           Json?
+  weeklyPlan      Json?
+  quiz            Json?
+  diagnostico     Json?
+  news            Json?
+  progressPhrases Json?
+  ebookTitle      String?
+  ebookSubtitle   String?
+  ebookPdfUrl     String?
+  ebookFeatures   Json?
+
+  articles     Article[]
+  podcasts     Podcast[]
+  videoLessons VideoLesson[]
+}
+
+model Article {
+  id       String @id @default(cuid())
+  appId    String
+  app      App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  icon     String?
+  title    String
+  cardDesc String?
+  subtitle String?
+  content  String
+  order    Int    @default(0)
+}
+
+model Podcast {
+  id       String  @id @default(cuid())
+  appId    String
+  app      App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  title    String
+  duration String?
+  url      String
+  free     Boolean @default(true)
+  order    Int     @default(0)
+}
+
+model VideoLesson {
+  id      String  @id @default(cuid())
+  appId   String
+  app     App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  videoId String
+  title   String
+  num     String?
+  order   Int     @default(0)
 }
 
 model RelatedApp {
