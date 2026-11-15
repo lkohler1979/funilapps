@@ -68,6 +68,21 @@ resolver o engine por conta própria.
 - `prisma/schema.prisma` — modelo `App` (slug, categoria, descrição, status).
 - `prisma/seed.ts` — popula os 36 apps do catálogo.
 
+## Produção
+
+Rodando em `funilapps.unifyhub.com.br` (VPS compartilhado com outros projetos
+do Luiz — ver `DEPLOY.md` na raiz do repo).
+
+- App: `/var/www/funilapps` no servidor, processo PM2 `funilapp-web` na porta `3500`.
+- Nginx: `/etc/nginx/sites-available/funilapps`, SSL via certbot.
+- Redeploy:
+  ```bash
+  ssh root@<ip-do-servidor>
+  cd /var/www/funilapps && git pull origin main
+  cd web && npm ci && npx prisma generate && npm run build
+  pm2 restart funilapp-web
+  ```
+
 ## Limitações conhecidas
 
 - A edição de cada app não tem autenticação — qualquer pessoa com acesso à
