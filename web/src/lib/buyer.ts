@@ -55,7 +55,7 @@ export async function hasAccessToApp(email: string, appId: string) {
     where: {
       email,
       status: "paid",
-      OR: [{ type: "bundle" }, { type: "app", appId }],
+      appIds: { has: appId },
     },
     select: { id: true },
   });

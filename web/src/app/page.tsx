@@ -1,17 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { formatCents, BUNDLE_PRICE_CENTS } from "@/lib/pricing";
-import { createBundleCheckout } from "@/app/checkout/actions";
+import { formatCents } from "@/lib/pricing";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ desbloqueado?: string }>;
-}) {
-  const { desbloqueado } = await searchParams;
+export default async function Home() {
   const apps = await prisma.app.findMany({
     orderBy: { name: "asc" },
   });
@@ -25,29 +19,10 @@ export default async function Home({
           FunilApp
         </h1>
         <p className="mt-2 max-w-2xl text-zinc-600 dark:text-zinc-400">
-          Catálogo de {apps.length} apps standalone, prontos para serem usados em
-          conjunto ou vendidos separadamente.
+          Catálogo de {apps.length} apps standalone, cada um vendido
+          individualmente. Veja ofertas de combo com desconto na página de
+          cada app.
         </p>
-
-        {desbloqueado && (
-          <p className="mt-4 max-w-2xl rounded-lg border border-green-600/30 bg-green-50 p-3 text-sm text-green-800 dark:border-green-400/30 dark:bg-green-950 dark:text-green-300">
-            Compra confirmada! Acesso ao pacote completo liberado neste navegador.
-          </p>
-        )}
-
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <form action={createBundleCheckout}>
-            <button
-              type="submit"
-              className="rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-            >
-              Comprar pacote completo por {formatCents(BUNDLE_PRICE_CENTS)}
-            </button>
-          </form>
-          <span className="text-sm text-zinc-500">
-            ou compre cada app individualmente na sua página
-          </span>
-        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-6 py-10 sm:px-12">
@@ -67,7 +42,7 @@ export default async function Home({
                   >
                     <div className="relative aspect-square w-full bg-zinc-100 dark:bg-zinc-900">
                       <Image
-                        src={`/apps/${app.slug}.jpg`}
+                        src={app.imageUrl ?? `/apps/${app.slug}.jpg`}
                         alt={app.name}
                         fill
                         sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"

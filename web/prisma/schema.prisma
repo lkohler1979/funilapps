@@ -11,25 +11,39 @@ datasource db {
 }
 
 model App {
-  id          String     @id @default(cuid())
-  slug        String     @unique
-  folderSlug  String     @unique
+  id          String       @id @default(cuid())
+  slug        String       @unique
+  folderSlug  String       @unique
   name        String
   category    String
   description String
-  status      String     @default("draft")
-  priceCents  Int        @default(999)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  purchases   Purchase[]
+  status      String       @default("draft")
+  priceCents  Int          @default(999)
+  imageUrl    String?
+  accentColor String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  relatedFrom RelatedApp[] @relation("RelatedFrom")
+  relatedTo   RelatedApp[] @relation("RelatedTo")
+}
+
+model RelatedApp {
+  id              String   @id @default(cuid())
+  appId           String
+  app             App      @relation("RelatedFrom", fields: [appId], references: [id], onDelete: Cascade)
+  relatedAppId    String
+  relatedApp      App      @relation("RelatedTo", fields: [relatedAppId], references: [id], onDelete: Cascade)
+  comboPriceCents Int
+  createdAt       DateTime @default(now())
+
+  @@unique([appId, relatedAppId])
 }
 
 model Purchase {
   id              String   @id @default(cuid())
   email           String
-  type            String // "app" | "bundle"
-  appId           String?
-  app             App?     @relation(fields: [appId], references: [id])
+  type            String // "app" | "combo"
+  appIds          String[]
   amountCents     Int
   stripeSessionId String   @unique
   status          String   @default("pending") // "pending" | "paid"

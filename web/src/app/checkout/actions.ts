@@ -4,8 +4,7 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { stripe } from "@/lib/stripe";
-import { setBuyerCookie } from "@/lib/buyer";
-import { BUNDLE_PRICE_CENTS } from "@/lib/pricing";
+import { setBuyerCookie, hasAccessToApp } from "@/lib/buyer";
 
 async function getSiteUrl() {
   if (process.env.SITE_URL) return process.env.SITE_URL;
@@ -35,7 +34,7 @@ export async function createAppCheckout(slug: string) {
         quantity: 1,
       },
     ],
-    metadata: { type: "app", appId: app.id, slug: app.slug },
+    metadata: { type: "app", appIds: app.id, slug: app.slug },
     success_url: `${siteUrl}/api/checkout/callback?session_id={CHECKOUT_SESSION_ID}&slug=${app.slug}`,
     cancel_url: `${siteUrl}/${app.slug}`,
   });
@@ -47,8 +46,17 @@ export async function createAppCheckout(slug: string) {
   redirect(session.url);
 }
 
-export async function createBundleCheckout() {
+export async function createComboCheckout(relatedAppRowId: string) {
+  const relation = await prisma.relatedApp.findUnique({
+    where: { id: relatedAppRowId },
+    include: { app: true, relatedApp: true },
+  });
+  if (!relation) {
+    throw new Error("Combo não encontrado");
+  }
+
   const siteUrl = await getSiteUrl();
+  const returnSlug = relation.app.slug;
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -56,15 +64,20 @@ export async function createBundleCheckout() {
       {
         price_data: {
           currency: "brl",
-          unit_amount: BUNDLE_PRICE_CENTS,
-          product_data: { name: "Pacote completo — 36 apps FunilApp" },
+          unit_amount: relation.comboPriceCents,
+          product_data: {
+            name: `Combo: ${relation.app.name} + ${relation.relatedApp.name}`,
+          },
         },
         quantity: 1,
       },
     ],
-    metadata: { type: "bundle" },
-    success_url: `${siteUrl}/api/checkout/callback?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${siteUrl}/`,
+    metadata: {
+      type: "combo",
+      appIds: `${relation.appId},${relation.relatedAppId}`,
+    },
+    success_url: `${siteUrl}/api/checkout/callback?session_id={CHECKOUT_SESSION_ID}&slug=${returnSlug}`,
+    cancel_url: `${siteUrl}/${returnSlug}`,
   });
 
   if (!session.url) {
@@ -89,15 +102,8 @@ export async function unlockWithEmail(formData: FormData) {
     redirect(`/${slug}`);
   }
 
-  const purchase = await prisma.purchase.findFirst({
-    where: {
-      email,
-      status: "paid",
-      OR: [{ type: "bundle" }, { type: "app", appId: app.id }],
-    },
-  });
-
-  if (!purchase) {
+  const hasAccess = await hasAccessToApp(email, app.id);
+  if (!hasAccess) {
     redirect(`/${slug}?erro=naoencontrado`);
   }
 

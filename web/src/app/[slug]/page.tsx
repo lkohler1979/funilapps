@@ -6,8 +6,11 @@ import { isAuthenticated } from "@/lib/auth";
 import { getBuyerEmail, hasAccessToApp } from "@/lib/buyer";
 import { formatCents } from "@/lib/pricing";
 import { logout } from "@/app/login/actions";
-import { createAppCheckout, unlockWithEmail } from "@/app/checkout/actions";
-import { updateApp } from "./actions";
+import {
+  createAppCheckout,
+  createComboCheckout,
+  unlockWithEmail,
+} from "@/app/checkout/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +34,16 @@ export default async function AppPage({
   const purchased = buyerEmail ? await hasAccessToApp(buyerEmail, app.id) : false;
   const unlocked = authenticated || purchased;
 
+  const relations = await prisma.relatedApp.findMany({
+    where: { OR: [{ appId: app.id }, { relatedAppId: app.id }] },
+    include: { app: true, relatedApp: true },
+  });
+  const combos = relations.map((r) => ({
+    id: r.id,
+    otherApp: r.appId === app.id ? r.relatedApp : r.app,
+    comboPriceCents: r.comboPriceCents,
+  }));
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black">
       <header className="border-b border-black/[.08] bg-white px-6 py-8 dark:border-white/[.1] dark:bg-black sm:px-12">
@@ -49,20 +62,28 @@ export default async function AppPage({
         </p>
         <div className="mt-2">
           {authenticated ? (
-            <form action={logout}>
-              <button
-                type="submit"
+            <div className="flex items-center gap-3">
+              <Link
+                href="/admin"
                 className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
               >
-                Sair
-              </button>
-            </form>
+                Painel admin
+              </Link>
+              <form action={logout}>
+                <button
+                  type="submit"
+                  className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                >
+                  Sair
+                </button>
+              </form>
+            </div>
           ) : (
             <Link
               href="/login"
               className="text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             >
-              Login para editar
+              Login administrativo
             </Link>
           )}
         </div>
@@ -71,7 +92,7 @@ export default async function AppPage({
       <main className="mx-auto max-w-2xl px-6 py-10 sm:px-12">
         <div className="relative mb-6 aspect-square w-full max-w-xs mx-auto overflow-hidden rounded-lg bg-zinc-100 dark:bg-zinc-900">
           <Image
-            src={`/apps/${app.slug}.jpg`}
+            src={app.imageUrl ?? `/apps/${app.slug}.jpg`}
             alt={app.name}
             fill
             sizes="320px"
@@ -104,18 +125,16 @@ export default async function AppPage({
               <form action={createAppCheckout.bind(null, app.slug)}>
                 <button
                   type="submit"
-                  className="w-full rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+                  className={
+                    app.accentColor
+                      ? "w-full rounded-full px-5 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                      : "w-full rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
+                  }
+                  style={app.accentColor ? { backgroundColor: app.accentColor } : undefined}
                 >
                   Comprar acesso
                 </button>
               </form>
-
-              <Link
-                href="/"
-                className="text-center text-sm text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-              >
-                Ver oferta do pacote completo (36 apps)
-              </Link>
 
               <details className="mt-2 text-sm text-zinc-500" open={Boolean(erro)}>
                 <summary className="cursor-pointer">Já comprei</summary>
@@ -153,78 +172,49 @@ export default async function AppPage({
           </section>
         )}
 
-        {authenticated && (
-        <section className="rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950">
-          <h2 className="mb-4 text-lg font-semibold text-black dark:text-zinc-50">
-            Editar app
-          </h2>
-          <form action={updateApp} className="flex flex-col gap-4">
-            <input type="hidden" name="id" value={app.id} />
-            <input type="hidden" name="slug" value={app.slug} />
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Nome
-              <input
-                name="name"
-                defaultValue={app.name}
-                required
-                className="rounded border border-black/[.12] bg-transparent px-3 py-2 text-black dark:border-white/[.15] dark:text-zinc-50"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Categoria
-              <input
-                name="category"
-                defaultValue={app.category}
-                required
-                className="rounded border border-black/[.12] bg-transparent px-3 py-2 text-black dark:border-white/[.15] dark:text-zinc-50"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Descrição
-              <textarea
-                name="description"
-                defaultValue={app.description}
-                required
-                rows={4}
-                className="rounded border border-black/[.12] bg-transparent px-3 py-2 text-black dark:border-white/[.15] dark:text-zinc-50"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Preço (centavos)
-              <input
-                name="priceCents"
-                type="number"
-                min={0}
-                defaultValue={app.priceCents}
-                required
-                className="rounded border border-black/[.12] bg-transparent px-3 py-2 text-black dark:border-white/[.15] dark:text-zinc-50"
-              />
-            </label>
-
-            <label className="flex flex-col gap-1 text-sm text-zinc-600 dark:text-zinc-400">
-              Status
-              <select
-                name="status"
-                defaultValue={app.status}
-                className="rounded border border-black/[.12] bg-transparent px-3 py-2 text-black dark:border-white/[.15] dark:text-zinc-50"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="published">Publicado</option>
-              </select>
-            </label>
-
-            <button
-              type="submit"
-              className="mt-2 rounded-full bg-foreground px-5 py-2 text-sm font-medium text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc]"
-            >
-              Salvar
-            </button>
-          </form>
-        </section>
+        {combos.length > 0 && (
+          <section className="rounded-lg border border-black/[.08] bg-white p-6 dark:border-white/[.1] dark:bg-zinc-950">
+            <h2 className="mb-4 text-lg font-semibold text-black dark:text-zinc-50">
+              Leve também
+            </h2>
+            <div className="flex flex-col gap-4">
+              {combos.map((combo) => (
+                <div
+                  key={combo.id}
+                  className="flex items-center justify-between gap-4 rounded-lg border border-black/[.08] p-3 dark:border-white/[.1]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded bg-zinc-100 dark:bg-zinc-900">
+                      <Image
+                        src={combo.otherApp.imageUrl ?? `/apps/${combo.otherApp.slug}.jpg`}
+                        alt={combo.otherApp.name}
+                        fill
+                        sizes="56px"
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-black dark:text-zinc-50">
+                        {app.name} + {combo.otherApp.name}
+                      </p>
+                      <p className="text-xs text-zinc-500">
+                        Combo por {formatCents(combo.comboPriceCents)} (ao invés
+                        de {formatCents(app.priceCents + combo.otherApp.priceCents)})
+                      </p>
+                    </div>
+                  </div>
+                  <form action={createComboCheckout.bind(null, combo.id)}>
+                    <button
+                      type="submit"
+                      className="shrink-0 rounded-full border border-black/[.12] px-4 py-2 text-xs font-medium text-black transition-colors hover:border-black/[.3] dark:border-white/[.15] dark:text-zinc-50 dark:hover:border-white/[.3]"
+                    >
+                      Comprar combo
+                    </button>
+                  </form>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
       </main>
     </div>

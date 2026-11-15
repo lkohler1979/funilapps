@@ -18,7 +18,8 @@ e edição pela interface.
    DATABASE_URL="postgresql://...:6543/postgres?pgbouncer=true&connection_limit=1"
    DIRECT_URL="postgresql://...:5432/postgres"
    AUTH_SECRET="<string aleatória, ex: openssl rand -hex 32>"
-   ADMIN_PASSWORD="<senha de admin para editar o catálogo>"
+   ADMIN_EMAIL="<e-mail do superadmin>"
+   ADMIN_PASSWORD="<senha do superadmin>"
    SITE_URL="http://localhost:3000"
    STRIPE_SECRET_KEY="<chave secreta da Stripe>"
    STRIPE_WEBHOOK_SECRET="<signing secret do webhook da Stripe>"
@@ -26,11 +27,12 @@ e edição pela interface.
 
    `DATABASE_URL` é a conexão via pooler (usada pela aplicação em runtime).
    `DIRECT_URL` é a conexão direta (porta 5432), usada pelo Prisma CLI.
-   `AUTH_SECRET` assina o cookie de sessão do login (`/login`) e `ADMIN_PASSWORD`
-   é a senha única de administrador — só com ela logado é possível editar um
-   app pelo formulário em `/<slug>`. `SITE_URL` é a URL pública do site (usada
-   para montar as URLs de retorno do checkout Stripe). `STRIPE_SECRET_KEY` e
-   `STRIPE_WEBHOOK_SECRET` vêm do dashboard da Stripe (ver seção "Pagamentos").
+   `AUTH_SECRET` assina os cookies de sessão (login admin e acesso de
+   comprador). `ADMIN_EMAIL`/`ADMIN_PASSWORD` são as credenciais do único
+   superadmin (login em `/login`, painel em `/admin`). `SITE_URL` é a URL
+   pública do site (usada para montar as URLs de retorno do checkout Stripe).
+   `STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` vêm do dashboard da Stripe
+   (ver seção "Pagamentos").
 
 2. Instalar dependências e gerar o client:
 
@@ -73,9 +75,11 @@ resolver o engine por conta própria.
 ## Estrutura
 
 - `src/app/page.tsx` — landing, lista os apps agrupados por categoria.
-- `src/app/[slug]/page.tsx` — página de cada app (view + formulário de edição).
-- `src/app/[slug]/actions.ts` — Server Action que salva as edições.
-- `prisma/schema.prisma` — modelo `App` (slug, categoria, descrição, status).
+- `src/app/[slug]/page.tsx` — página pública de cada app (paywall, compra,
+  combos relacionados). Edição fica só no painel `/admin`.
+- `src/app/admin/` — painel do superadmin (dashboard, CRUD de apps, combos,
+  relatório de vendas).
+- `prisma/schema.prisma` — modelos `App`, `RelatedApp` (combos) e `Purchase`.
 - `prisma/seed.ts` — popula os 36 apps do catálogo.
 
 ## Produção
@@ -95,26 +99,50 @@ do Luiz — ver `DEPLOY.md` na raiz do repo).
 
 ## Autenticação
 
-A edição de cada app (`/<slug>`) é protegida por login simples (senha única
-de administrador, cookie assinado com `AUTH_SECRET`):
+Login único de superadmin (e-mail + senha, cookie assinado com `AUTH_SECRET`):
 
-- `src/lib/auth.ts` — assina/valida o cookie de sessão e confere a senha.
+- `src/lib/auth.ts` — assina/valida o cookie de sessão e confere e-mail/senha
+  contra `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
 - `src/app/login/` — página e Server Actions de login/logout.
-- A Server Action `updateApp` (`src/app/[slug]/actions.ts`) recusa a
-  atualização se não houver sessão válida, independente do que a UI mostra —
-  essa é a verificação que realmente importa.
-- A listagem (`/`) e a visualização de cada app continuam públicas; só o
-  formulário de edição fica oculto para quem não está logado.
+- `src/app/admin/layout.tsx` — bloqueia toda a área `/admin` (e cada Server
+  Action em `src/app/admin/apps/actions.ts` confere a sessão de novo) para
+  quem não está logado — essa é a verificação que realmente importa.
+- A listagem (`/`) e a visualização de cada app continuam 100% públicas.
+
+## Painel admin (`/admin`)
+
+- `/admin` — dashboard: total de apps, publicados, vendas, receita,
+  compradores únicos e vendas recentes.
+- `/admin/apps` — lista todos os apps; `/admin/apps/new` cria um novo
+  (slug, nome, categoria, descrição, preço, cor de destaque, status e
+  upload da imagem de capa — obrigatória na criação); `/admin/apps/<slug>`
+  edita tudo isso (imagem opcional ao editar) e gerencia os combos do app
+  (ver "Combos" abaixo).
+- `/admin/purchases` — relatório completo de vendas (e-mail, tipo, item,
+  valor, data).
+- Upload de imagem grava direto em `web/public/apps/<slug>.<ext>` (sem
+  storage externo — funciona porque o servidor tem disco persistente via
+  PM2). Sem exclusão de apps por enquanto: para tirar do ar, usar status
+  "Rascunho".
+
+## Combos (apps relacionados)
+
+Não existe mais compra de "pacote completo". Em vez disso, cada app pode ter
+combos com outros apps, com preço próprio:
+
+- Modelo `RelatedApp` (`appId`, `relatedAppId`, `comboPriceCents`) — definido
+  em qualquer uma das duas direções, mas exibido na página de ambos os apps.
+- Gerenciado em `/admin/apps/<slug>`, seção "Apps relacionados".
+- Na página pública do app, aparece em "Leve também" com o preço do combo e
+  o preço somado para comparação.
 
 ## Pagamentos
 
-Cada app tem um preço (`priceCents`, editável pelo admin em `/<slug>`) e
-existe uma oferta de pacote com todos os 36 apps (`BUNDLE_PRICE_CENTS` em
-`src/lib/pricing.ts`). Checkout via Stripe (Checkout Session hospedado, sem
-Stripe.js no front-end):
+Cada app tem um preço (`priceCents`, editável no admin). Checkout via Stripe
+(Checkout Session hospedado, sem Stripe.js no front-end):
 
-- `src/app/checkout/actions.ts` — cria a sessão de checkout (por app ou
-  pacote) e o desbloqueio manual por e-mail.
+- `src/app/checkout/actions.ts` — cria a sessão de checkout (app individual
+  ou combo) e o desbloqueio manual por e-mail.
 - `src/app/api/checkout/callback/route.ts` — URL de retorno do Stripe após o
   pagamento: confirma a sessão, grava a compra e libera acesso (cookie) neste
   navegador.
@@ -122,7 +150,8 @@ Stripe.js no front-end):
   que confirma a compra de forma assíncrona/idempotente — necessário caso o
   comprador feche a aba antes de retornar (ex: pagamento via PIX).
 - `src/lib/buyer.ts` — cookie assinado com o e-mail do comprador e checagem de
-  acesso (`hasAccessToApp`) contra a tabela `Purchase`.
+  acesso (`hasAccessToApp`) contra `Purchase.appIds` (array — cobre compra
+  individual e combo com a mesma lógica).
 - Quem comprou mas está em outro navegador/dispositivo pode desbloquear de
   novo informando o mesmo e-mail em "Já comprei" na página do app.
 - Configurar na Stripe: um webhook endpoint apontando para
@@ -130,7 +159,7 @@ Stripe.js no front-end):
 
 ## Limitações conhecidas
 
-- Login único (uma senha de admin, sem multiusuário/papéis) — suficiente
-  para proteger a edição, mas não serve para múltiplos editores.
+- Login único (um superadmin, sem multiusuário/papéis).
+- Sem exclusão de apps no painel (só despublicar via status).
 - O "conteúdo" liberado pela compra ainda é a descrição do catálogo — os
   apps em si (funcionalidade real de cada nicho) ainda não foram construídos.

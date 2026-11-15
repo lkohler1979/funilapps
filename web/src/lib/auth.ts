@@ -31,11 +31,17 @@ function isValidSession(value: string | undefined) {
   return Number.isFinite(expires) && Date.now() < expires;
 }
 
-export function checkPassword(password: string) {
-  const expected = process.env.ADMIN_PASSWORD ?? "";
-  if (!expected || !password) return false;
+export function checkCredentials(email: string, password: string) {
+  const expectedEmail = process.env.ADMIN_EMAIL ?? "";
+  const expectedPassword = process.env.ADMIN_PASSWORD ?? "";
+  if (!expectedEmail || !expectedPassword || !email || !password) return false;
+
+  if (email.trim().toLowerCase() !== expectedEmail.trim().toLowerCase()) {
+    return false;
+  }
+
   const passwordBuf = Buffer.from(password);
-  const expectedBuf = Buffer.from(expected);
+  const expectedBuf = Buffer.from(expectedPassword);
   if (passwordBuf.length !== expectedBuf.length) return false;
   return timingSafeEqual(passwordBuf, expectedBuf);
 }
