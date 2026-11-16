@@ -27,26 +27,154 @@ model App {
   relatedTo   RelatedApp[] @relation("RelatedTo")
 
   // Conteúdo do "app de verdade" (home, menu, plano, quiz etc.)
-  tagline         String?
-  heroBadge       String?
-  heroTitle       String?
-  navigation      Json?
-  labels          Json?
-  theme           Json?
-  weeklyPlan      Json?
-  quiz            Json?
-  diagnostico     Json?
-  progressPhrases Json?
-  ebookTitle      String?
-  ebookSubtitle   String?
-  ebookPdfUrl     String?
-  ebookFeatures   Json?
+  tagline   String?
+  heroBadge String?
+  heroTitle String?
 
-  articles     Article[]
-  podcasts     Podcast[]
-  videoLessons VideoLesson[]
-  newsItems    NewsItem[]
-  userProgress UserProgress[]
+  // Diagnóstico — textos simples (perguntas/alertas/métricas são tabelas abaixo)
+  diagnosticoBoaNoticia  String?
+  diagnosticoPlanoTitulo String?
+  diagnosticoPlanoTexto  String?
+
+  ebookTitle    String?
+  ebookSubtitle String?
+  ebookPdfUrl   String?
+
+  articles          Article[]
+  podcasts          Podcast[]
+  videoLessons      VideoLesson[]
+  newsItems         NewsItem[]
+  userProgress      UserProgress[]
+  quizQuestions     QuizQuestion[]
+  navItems          NavItem[]
+  appLabels         AppLabel[]
+  planWeeks         PlanWeek[]
+  diagnosticQuestions DiagnosticQuestion[]
+  diagnosticAlerts    DiagnosticAlert[]
+  diagnosticMetrics   DiagnosticMetric[]
+  progressPhraseRows  ProgressPhrase[]
+  ebookFeatureRows    EbookFeature[]
+}
+
+model NavItem {
+  id    String  @id @default(cuid())
+  appId String
+  app   App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  page  String
+  icon  String?
+  label String
+  order Int     @default(0)
+}
+
+model AppLabel {
+  id    String @id @default(cuid())
+  appId String
+  app   App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  key   String
+  value String
+
+  @@unique([appId, key])
+}
+
+model PlanWeek {
+  id       String    @id @default(cuid())
+  appId    String
+  app      App       @relation(fields: [appId], references: [id], onDelete: Cascade)
+  name     String
+  subtitle String?
+  order    Int       @default(0)
+  days     PlanDay[]
+}
+
+model PlanDay {
+  id        String         @id @default(cuid())
+  weekId    String
+  week      PlanWeek       @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  name      String
+  order     Int            @default(0)
+  exercises PlanExercise[]
+}
+
+model PlanExercise {
+  id     String  @id @default(cuid())
+  dayId  String
+  day    PlanDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  name   String
+  reps   String?
+  order  Int     @default(0)
+  desc   String?
+  steps  String[]
+  tip    String?
+  type   String?
+  series Int?
+  video  String?
+}
+
+model DiagnosticQuestion {
+  id     String             @id @default(cuid())
+  appId  String
+  app    App                @relation(fields: [appId], references: [id], onDelete: Cascade)
+  titulo String
+  order  Int                @default(0)
+  opcoes DiagnosticOption[]
+}
+
+model DiagnosticOption {
+  id         String             @id @default(cuid())
+  questionId String
+  question   DiagnosticQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  texto      String
+  descricao  String?
+  valor      Int?
+  order      Int                @default(0)
+}
+
+model DiagnosticAlert {
+  id    String @id @default(cuid())
+  appId String
+  app   App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  text  String
+  order Int    @default(0)
+}
+
+model DiagnosticMetric {
+  id    String @id @default(cuid())
+  appId String
+  app   App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  n     String
+  de    String
+  para  String
+  order Int    @default(0)
+}
+
+model ProgressPhrase {
+  id    String @id @default(cuid())
+  appId String
+  app   App    @relation(fields: [appId], references: [id], onDelete: Cascade)
+  text  String
+  order Int    @default(0)
+}
+
+model EbookFeature {
+  id    String  @id @default(cuid())
+  appId String
+  app   App     @relation(fields: [appId], references: [id], onDelete: Cascade)
+  icon  String?
+  text  String
+  order Int     @default(0)
+}
+
+model QuizQuestion {
+  id          String   @id @default(cuid())
+  appId       String
+  app         App      @relation(fields: [appId], references: [id], onDelete: Cascade)
+  category    String?
+  difficulty  String?
+  question    String
+  options     String[]
+  correct     Int
+  explanation String?
+  order       Int      @default(0)
 }
 
 model Article {

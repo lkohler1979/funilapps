@@ -7,7 +7,7 @@ type QuizQuestion = {
   question: string;
   options: string[];
   correct: number;
-  explanation?: string;
+  explanation?: string | null;
 };
 
 const QUESTIONS_PER_ROUND = 10;

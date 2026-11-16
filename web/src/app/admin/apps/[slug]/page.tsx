@@ -4,11 +4,14 @@ import { prisma } from "@/lib/prisma";
 import { formatCents } from "@/lib/pricing";
 import { addCombo, removeCombo, updateAppAdmin } from "../actions";
 import { ContentForm } from "./content-form";
-import { JsonEditor } from "./json-editor";
 import { ArticlesSection } from "./articles-section";
 import { VideosSection } from "./videos-section";
 import { PodcastsSection } from "./podcasts-section";
 import { NewsSection } from "./news-section";
+import { QuizSection } from "./quiz-section";
+import { PlanSection } from "./plan-section";
+import { DiagnosticoSection } from "./diagnostico-section";
+import { MenuSection } from "./menu-section";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +38,19 @@ export default async function EditAppPage({
     notFound();
   }
 
-  const [otherApps, relations] = await Promise.all([
+  const [
+    otherApps,
+    relations,
+    quizQuestions,
+    planWeeks,
+    diagQuestions,
+    diagAlerts,
+    diagMetrics,
+    navItems,
+    appLabels,
+    phraseRows,
+    ebookFeatureRows,
+  ] = await Promise.all([
     prisma.app.findMany({
       where: { id: { not: app.id } },
       orderBy: { name: "asc" },
@@ -45,6 +60,23 @@ export default async function EditAppPage({
       where: { OR: [{ appId: app.id }, { relatedAppId: app.id }] },
       include: { app: true, relatedApp: true },
     }),
+    prisma.quizQuestion.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.planWeek.findMany({
+      where: { appId: app.id },
+      orderBy: { order: "asc" },
+      include: { days: { orderBy: { order: "asc" }, include: { exercises: { orderBy: { order: "asc" } } } } },
+    }),
+    prisma.diagnosticQuestion.findMany({
+      where: { appId: app.id },
+      orderBy: { order: "asc" },
+      include: { opcoes: { orderBy: { order: "asc" } } },
+    }),
+    prisma.diagnosticAlert.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.diagnosticMetric.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.navItem.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.appLabel.findMany({ where: { appId: app.id }, orderBy: { key: "asc" } }),
+    prisma.progressPhrase.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.ebookFeature.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
   ]);
 
   const combos = relations.map((r) => ({
@@ -83,6 +115,9 @@ export default async function EditAppPage({
             className="object-cover"
           />
         </div>
+        <p className="break-all text-xs text-zinc-500">
+          {(process.env.SITE_URL ?? "") + (app.imageUrl ?? `/apps/${app.slug}.jpg`)}
+        </p>
 
         <p className="text-xs text-zinc-500">/{app.slug} (não editável)</p>
 
@@ -249,7 +284,11 @@ export default async function EditAppPage({
         )}
       </section>
 
-      <ContentForm app={app} />
+      <ContentForm
+        app={app}
+        phrases={phraseRows.map((p) => p.text)}
+        ebookFeatures={ebookFeatureRows}
+      />
 
       <ArticlesSection appId={app.id} slug={app.slug} articles={app.articles} />
 
@@ -259,31 +298,17 @@ export default async function EditAppPage({
 
       <NewsSection appId={app.id} slug={app.slug} news={app.newsItems} />
 
-      <JsonEditor
-        appId={app.id}
-        slug={app.slug}
-        field="weeklyPlan"
-        title="Plano semanal (desafios)"
-        value={app.weeklyPlan}
-        erro={erro}
-      />
+      <MenuSection slug={app.slug} nav={navItems} labels={appLabels} />
 
-      <JsonEditor
-        appId={app.id}
-        slug={app.slug}
-        field="quiz"
-        title="Quiz"
-        value={app.quiz}
-        erro={erro}
-      />
+      <PlanSection appId={app.id} slug={app.slug} weeks={planWeeks} />
 
-      <JsonEditor
-        appId={app.id}
-        slug={app.slug}
-        field="diagnostico"
-        title="Diagnóstico"
-        value={app.diagnostico}
-        erro={erro}
+      <QuizSection appId={app.id} slug={app.slug} questions={quizQuestions} />
+
+      <DiagnosticoSection
+        app={app}
+        questions={diagQuestions}
+        alerts={diagAlerts}
+        metrics={diagMetrics}
       />
     </div>
   );

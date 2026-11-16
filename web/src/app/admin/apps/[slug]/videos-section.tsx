@@ -27,6 +27,14 @@ export function VideosSection({
               {video.num ? `${video.num} — ` : ""}
               {video.title}
             </summary>
+            <a
+              href={`https://www.youtube.com/watch?v=${video.videoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block break-all text-xs text-zinc-500 hover:underline"
+            >
+              https://www.youtube.com/watch?v={video.videoId}
+            </a>
             <form action={updateVideo} className="mt-3 flex flex-col gap-2">
               <input type="hidden" name="id" value={video.id} />
               <input type="hidden" name="slug" value={slug} />

@@ -15,9 +15,10 @@ export default async function EbookPage({
     notFound();
   }
 
-  const features = Array.isArray(app.ebookFeatures)
-    ? (app.ebookFeatures as { icon?: string; text: string }[])
-    : [];
+  const features = await prisma.ebookFeature.findMany({
+    where: { appId: app.id },
+    orderBy: { order: "asc" },
+  });
 
   return (
     <div>
@@ -30,9 +31,9 @@ export default async function EbookPage({
 
       {features.length > 0 && (
         <ul className="mb-6 flex flex-col gap-2">
-          {features.map((f, i) => (
+          {features.map((f) => (
             <li
-              key={i}
+              key={f.id}
               className="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300"
             >
               <span>{f.icon ?? "✓"}</span>

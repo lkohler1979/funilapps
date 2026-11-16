@@ -33,6 +33,14 @@ export function PodcastsSection({
             <summary className="cursor-pointer text-sm font-medium text-black dark:text-zinc-50">
               {podcast.title}
             </summary>
+            <a
+              href={podcast.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block break-all text-xs text-zinc-500 hover:underline"
+            >
+              {podcast.url}
+            </a>
             <form action={updatePodcast} className="mt-3 flex flex-col gap-2">
               <input type="hidden" name="id" value={podcast.id} />
               <input type="hidden" name="slug" value={slug} />

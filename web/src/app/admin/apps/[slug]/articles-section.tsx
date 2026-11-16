@@ -34,6 +34,14 @@ export function ArticlesSection({
             <summary className="cursor-pointer text-sm font-medium text-black dark:text-zinc-50">
               {article.icon} {article.title}
             </summary>
+            <a
+              href={`/${slug}/app/artigos/${article.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-1 block break-all text-xs text-zinc-500 hover:underline"
+            >
+              /{slug}/app/artigos/{article.id}
+            </a>
             <form action={updateArticle} className="mt-3 flex flex-col gap-2">
               <input type="hidden" name="id" value={article.id} />
               <input type="hidden" name="slug" value={slug} />

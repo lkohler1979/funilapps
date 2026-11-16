@@ -33,9 +33,10 @@ export default async function MiniAppLayout({
     redirect(`/${slug}`);
   }
 
-  const nav = Array.isArray(app.navigation)
-    ? (app.navigation as { page: string; label: string }[])
-    : [];
+  const nav = await prisma.navItem.findMany({
+    where: { appId: app.id },
+    orderBy: { order: "asc" },
+  });
 
   return (
     <div

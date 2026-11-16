@@ -4,15 +4,6 @@ import { QuizGame } from "./quiz-game";
 
 export const dynamic = "force-dynamic";
 
-type QuizQuestion = {
-  category?: string;
-  difficulty?: string;
-  question: string;
-  options: string[];
-  correct: number;
-  explanation?: string;
-};
-
 export default async function QuizPage({
   params,
 }: {
@@ -25,8 +16,10 @@ export default async function QuizPage({
     notFound();
   }
 
-  const quiz = (app.quiz ?? {}) as { questions?: QuizQuestion[] };
-  const questions = quiz.questions ?? [];
+  const questions = await prisma.quizQuestion.findMany({
+    where: { appId: app.id },
+    orderBy: { order: "asc" },
+  });
 
   return (
     <div>

@@ -16,32 +16,16 @@ export default async function ProgressPage({
     notFound();
   }
 
-  const phrases = Array.isArray(app.progressPhrases)
-    ? (app.progressPhrases as string[])
-    : [];
-  const labels = (app.labels ?? {}) as Record<string, string>;
+  const [phraseRows, labelRows, totalExercises, buyerEmail] = await Promise.all([
+    prisma.progressPhrase.findMany({ where: { appId: app.id }, orderBy: { order: "asc" } }),
+    prisma.appLabel.findMany({ where: { appId: app.id } }),
+    prisma.planExercise.count({ where: { day: { week: { appId: app.id } } } }),
+    getBuyerEmail(),
+  ]);
 
-  const plan = (app.weeklyPlan ?? {}) as {
-    treinos?: Record<string, { subtitle?: string; [day: string]: unknown }>;
-  };
-  const totalExercises = Object.values(plan.treinos ?? {}).reduce(
-    (sum, week) => {
-      const { subtitle: _subtitle, ...days } = week as {
-        subtitle?: string;
-        [day: string]: unknown;
-      };
-      return (
-        sum +
-        Object.values(days).reduce(
-          (daySum: number, exercises) => daySum + (exercises as unknown[]).length,
-          0,
-        )
-      );
-    },
-    0,
-  );
+  const phrases = phraseRows.map((p) => p.text);
+  const labels = Object.fromEntries(labelRows.map((l) => [l.key, l.value]));
 
-  const buyerEmail = await getBuyerEmail();
   let doneCount = 0;
   let quizResult: { score: number; total: number } | null = null;
 
